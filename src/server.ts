@@ -108,17 +108,18 @@ app.get('/v2/bcp-event', async (req: Request, res: Response) => {
       last_name: placing.last_name,
       t3_nickname: '',
       placing: placing.placing,
+      wins: placing.wins || 0,
+      path_to_victory: placing.path_to_victory || 0,
+      bcp_user_id: placing.bcp_user_id,
       city: '',
       team: placing.team,
       faction: placing.faction,
       number_players: parsedEventInformation.number_players,
       number_rounds: parsedEventInformation.number_rounds,
       tournament_name: parsedEventInformation.tournament_name,
+      tournament_id: eventId,
       tournament_date: parsedEventInformation.tournament_date,
       game_size: parsedEventInformation.game_size || 'N/A',
-      wins: placing.wins,
-      path_to_victory: placing.path_to_victory || 'N/A',
-      bcp_user_id: placing.bcp_user_id,
     }));
     res.send({ success: true, data: finalEventData });
   } catch (error) {
