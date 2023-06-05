@@ -48,7 +48,7 @@ const BCP_API_URL = 'https://pnnct8s9sk.execute-api.us-east-1.amazonaws.com/prod
 
 const getBcpEventInformation = async (eventId: string) => {
   const url = `${BCP_API_URL}/events/${eventId}`;
-  const eventResponse = await axios.get(url);
+  const eventResponse = await axios.get(url, { headers: { 'Client-Id': 'test' } });
   return eventResponse.data;
 };
 
@@ -76,7 +76,7 @@ const getBcpEventPlacings = async (eventId: string) => {
   while (i < 15) {
     i++;
     const url = buildBcpEventPlacingsUrl(eventId, nextKey);
-    const placingsResponse = await axios.get(url);
+    const placingsResponse = await axios.get(url, { headers: { 'Client-Id': 'test' } });
     const placingsData = placingsResponse.data.data;
     if (placingsData.length === 0) {
       break;
@@ -108,8 +108,8 @@ app.get('/v2/bcp-event', async (req: Request, res: Response) => {
       last_name: placing.last_name,
       t3_nickname: '',
       placing: placing.placing,
-      wins: String(placing.wins || 0).replace(".",","),
-      path_to_victory: String(placing.path_to_victory || 0).replace(".",","),
+      wins: String(placing.wins || 0).replace('.', ','),
+      path_to_victory: String(placing.path_to_victory || 0).replace('.', ','),
       bcp_user_id: placing.bcp_user_id,
       city: '',
       team: placing.team,
