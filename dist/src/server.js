@@ -51,124 +51,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var express_1 = __importDefault(require("express"));
-var axios_1 = __importDefault(require("axios"));
-var jsdom_1 = require("jsdom");
-var tabletojson_1 = require("tabletojson");
-var puppeteer_1 = __importDefault(require("puppeteer"));
 var cors_1 = __importDefault(require("cors"));
-var getBCPData = function (eventUrl) { return __awaiter(void 0, void 0, void 0, function () {
-    var browser, page, names, titles, armiesAndTeam, parsedResults;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, puppeteer_1.default.launch()];
-            case 1:
-                browser = _a.sent();
-                return [4 /*yield*/, browser.newPage()];
-            case 2:
-                page = _a.sent();
-                return [4 /*yield*/, page.goto(eventUrl)];
-            case 3:
-                _a.sent();
-                return [4 /*yield*/, page.waitForSelector('.title')];
-            case 4:
-                _a.sent();
-                return [4 /*yield*/, page.waitForSelector('select[name="playersTable_length"]')];
-            case 5:
-                _a.sent();
-                return [4 /*yield*/, page.select('select[name="playersTable_length"]', '-1')];
-            case 6:
-                _a.sent();
-                return [4 /*yield*/, page.evaluate(function () { return Array.from(document === null || document === void 0 ? void 0 : document.querySelectorAll('.title')).map(function (node) { return node.textContent; }); })];
-            case 7:
-                names = _a.sent();
-                return [4 /*yield*/, page.evaluate(function () { return Array.from(document === null || document === void 0 ? void 0 : document.querySelectorAll('.desc')).map(function (node) { return node.textContent; }); })];
-            case 8:
-                titles = _a.sent();
-                armiesAndTeam = titles.map(function (title) {
-                    if (!title) {
-                        return { army: 'unknown', team: 'unknown' };
-                    }
-                    var titleArray = title.split('-');
-                    if (titleArray.length === 0) {
-                        return { army: 'unknown', team: 'unknown' };
-                    }
-                    if (titleArray.length === 2) {
-                        return { army: titleArray[0].trim(), team: titleArray[1].trim() };
-                    }
-                    return { army: titleArray[0].trim(), team: '' };
-                });
-                parsedResults = names.map(function (name, index) {
-                    var _a;
-                    var army = armiesAndTeam[index].army;
-                    var team = armiesAndTeam[index].team;
-                    if (!name) {
-                        return {
-                            firstName: '',
-                            lastName: '',
-                            army: army,
-                            team: team
-                        };
-                    }
-                    var splitString = (_a = name.trim().match(/^(\S+)\s(.*)/)) === null || _a === void 0 ? void 0 : _a.slice(1);
-                    if (splitString) {
-                        return {
-                            firstName: splitString[0],
-                            lastName: splitString[1],
-                            army: army,
-                            team: team
-                        };
-                    }
-                    return {
-                        firstName: '',
-                        lastName: '',
-                        army: army,
-                        team: team
-                    };
-                });
-                return [4 /*yield*/, browser.close()];
-            case 9:
-                _a.sent();
-                return [2 /*return*/, parsedResults];
-        }
-    });
-}); };
+var legacy_1 = require("./legacy");
+var axios_1 = __importDefault(require("axios"));
 var app = (0, express_1.default)();
 app.use((0, cors_1.default)());
-var getT3PlayerData = function (_a) {
-    var firstName = _a.firstName, lastName = _a.lastName;
-    return __awaiter(void 0, void 0, void 0, function () {
-        var htmlString, dom, resultTable, table, firstEntry, result, nickname;
-        var _b;
-        return __generator(this, function (_c) {
-            switch (_c.label) {
-                case 0: return [4 /*yield*/, (0, axios_1.default)('https://www.tabletopturniere.de/t3_ntr_search.php', {
-                        data: "action=list&name=".concat(firstName, "&lastname=").concat(lastName, "&nickname=%25&gid=3&cid=1&list=2&submit=Suchen"),
-                        method: 'POST',
-                    })];
-                case 1:
-                    htmlString = _c.sent();
-                    dom = new jsdom_1.JSDOM(htmlString.data);
-                    resultTable = (_b = dom.window.document.querySelector('table[class="std"]')) === null || _b === void 0 ? void 0 : _b.outerHTML;
-                    if (!resultTable || resultTable.includes('No match found...')) {
-                        return [2 /*return*/, { success: false }];
-                    }
-                    table = tabletojson_1.Tabletojson.convert(resultTable);
-                    if (table && table.length > 0) {
-                        firstEntry = table[0];
-                        if (firstEntry && firstEntry.length > 0) {
-                            result = firstEntry[0];
-                            nickname = result === null || result === void 0 ? void 0 : result.Nickname;
-                            if (nickname) {
-                                return [2 /*return*/, { success: true, nickname: nickname }];
-                            }
-                        }
-                    }
-                    return [2 /*return*/, { success: false }];
-            }
-        });
-    });
-};
-app.get('/', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+app.get('/v1', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var firstName, lastName, _a, success, nickname;
     return __generator(this, function (_b) {
         switch (_b.label) {
@@ -176,7 +64,7 @@ app.get('/', function (req, res) { return __awaiter(void 0, void 0, void 0, func
                 firstName = req.query.firstName;
                 lastName = req.query.lastName;
                 if (!(typeof firstName === 'string' && typeof lastName === 'string')) return [3 /*break*/, 2];
-                return [4 /*yield*/, getT3PlayerData({ firstName: firstName, lastName: lastName })];
+                return [4 /*yield*/, (0, legacy_1.getT3PlayerData)({ firstName: firstName, lastName: lastName })];
             case 1:
                 _a = _b.sent(), success = _a.success, nickname = _a.nickname;
                 if (success) {
@@ -190,7 +78,7 @@ app.get('/', function (req, res) { return __awaiter(void 0, void 0, void 0, func
         }
     });
 }); });
-app.get('/event', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+app.get('/v1/event', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var eventUrl, bcpData, withNicknames, error_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -200,14 +88,14 @@ app.get('/event', function (req, res) { return __awaiter(void 0, void 0, void 0,
                 _a.label = 1;
             case 1:
                 _a.trys.push([1, 4, , 5]);
-                return [4 /*yield*/, getBCPData(eventUrl)];
+                return [4 /*yield*/, (0, legacy_1.getBCPData)(eventUrl)];
             case 2:
                 bcpData = _a.sent();
                 return [4 /*yield*/, Promise.all(bcpData.map(function (name) { return __awaiter(void 0, void 0, void 0, function () {
                         var nickname;
                         return __generator(this, function (_a) {
                             switch (_a.label) {
-                                case 0: return [4 /*yield*/, getT3PlayerData(name)];
+                                case 0: return [4 /*yield*/, (0, legacy_1.getT3PlayerData)(name)];
                                 case 1:
                                     nickname = (_a.sent()).nickname;
                                     return [2 /*return*/, __assign(__assign({}, name), { nickname: nickname || 'unknown' })];
@@ -225,6 +113,118 @@ app.get('/event', function (req, res) { return __awaiter(void 0, void 0, void 0,
             case 5:
                 res.send({ success: false });
                 return [2 /*return*/];
+        }
+    });
+}); });
+var BCP_API_URL = 'https://pnnct8s9sk.execute-api.us-east-1.amazonaws.com/prod';
+var getBcpEventInformation = function (eventId) { return __awaiter(void 0, void 0, void 0, function () {
+    var url, eventResponse;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                url = "".concat(BCP_API_URL, "/events/").concat(eventId);
+                return [4 /*yield*/, axios_1.default.get(url, { headers: { 'Client-Id': 'test' } })];
+            case 1:
+                eventResponse = _a.sent();
+                return [2 /*return*/, eventResponse.data];
+        }
+    });
+}); };
+var buildBcpEventPlacingsUrl = function (eventId, nextKey) {
+    return "".concat(BCP_API_URL, "/players?limit=100&eventId=").concat(eventId, "&placings=true&expand%5B%5D=team&expand%5B%5D=army").concat(nextKey ? "&nextKey=".concat(nextKey) : '');
+};
+var parsePlacingsData = function (placingsData) {
+    return placingsData.map(function (placing) { return ({
+        first_name: placing.firstName,
+        last_name: placing.lastName,
+        placing: placing.placing,
+        team: placing.teamName || placing.team.name,
+        faction: placing.armyName || placing.army.name,
+        subFaction: placing.subFactionName || '',
+        wins: placing.numWins,
+        path_to_victory: placing.pathToVictory,
+        bcp_user_id: placing.userId,
+    }); });
+};
+var getBcpEventPlacings = function (eventId) { return __awaiter(void 0, void 0, void 0, function () {
+    var allPlacings, nextKey, i, url, placingsResponse, placingsData;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                allPlacings = [];
+                nextKey = undefined;
+                i = 0;
+                _a.label = 1;
+            case 1:
+                if (!(i < 15)) return [3 /*break*/, 3];
+                i++;
+                url = buildBcpEventPlacingsUrl(eventId, nextKey);
+                return [4 /*yield*/, axios_1.default.get(url, { headers: { 'Client-Id': 'test' } })];
+            case 2:
+                placingsResponse = _a.sent();
+                placingsData = placingsResponse.data.data;
+                if (placingsData.length === 0) {
+                    return [3 /*break*/, 3];
+                }
+                allPlacings.push.apply(allPlacings, parsePlacingsData(placingsData));
+                nextKey = placingsResponse.data.nextKey;
+                return [3 /*break*/, 1];
+            case 3: return [2 /*return*/, allPlacings];
+        }
+    });
+}); };
+app.get('/v2/bcp-event', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var eventId, eventInformation, parsedEventInformation_1, eventPlacings, finalEventData, error_2;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                eventId = req.query.eventId;
+                if (!eventId) {
+                    res.status(400).send('Current password does not match');
+                    return [2 /*return*/];
+                }
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 4, , 5]);
+                return [4 /*yield*/, getBcpEventInformation(eventId)];
+            case 2:
+                eventInformation = _a.sent();
+                parsedEventInformation_1 = {
+                    number_players: eventInformation.totalPlayers,
+                    number_rounds: eventInformation.numberOfRounds,
+                    tournament_name: eventInformation.name,
+                    tournament_date: eventInformation === null || eventInformation === void 0 ? void 0 : eventInformation.eventDate.substring(0, 10),
+                    game_size: eventInformation.pointsValue,
+                };
+                return [4 /*yield*/, getBcpEventPlacings(eventId)];
+            case 3:
+                eventPlacings = _a.sent();
+                finalEventData = eventPlacings.map(function (placing) { return ({
+                    first_name: placing.first_name,
+                    last_name: placing.last_name,
+                    t3_nickname: '',
+                    placing: placing.placing,
+                    wins: String(placing.wins || 0),
+                    path_to_victory: String(placing.path_to_victory || 0),
+                    bcp_user_id: placing.bcp_user_id,
+                    city: '',
+                    team: placing.team,
+                    faction: placing.faction,
+                    sub_faction: placing.subFaction,
+                    number_players: parsedEventInformation_1.number_players,
+                    number_rounds: parsedEventInformation_1.number_rounds,
+                    tournament_name: parsedEventInformation_1.tournament_name,
+                    tournament_id: eventId,
+                    tournament_date: parsedEventInformation_1.tournament_date,
+                    game_size: parsedEventInformation_1.game_size || 'N/A',
+                }); });
+                res.send({ success: true, data: finalEventData });
+                return [3 /*break*/, 5];
+            case 4:
+                error_2 = _a.sent();
+                res.status(500).send("Error fetching BCP data: ".concat(error_2.toString()));
+                return [2 /*return*/];
+            case 5: return [2 /*return*/];
         }
     });
 }); });
